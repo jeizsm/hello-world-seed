@@ -2,8 +2,12 @@
 extern crate cfg_if;
 extern crate web_sys;
 extern crate wasm_bindgen;
+#[macro_use]
+extern crate seed;
 
 use wasm_bindgen::prelude::*;
+use seed::prelude::*;
+
 
 cfg_if! {
     // When the `console_error_panic_hook` feature is enabled, we can call the
@@ -27,20 +31,59 @@ cfg_if! {
     }
 }
 
+// Model
+
+#[derive(Clone)]
+struct Model {
+    pub val: i32,
+}
+
+impl Default for Model {
+    fn default() -> Self {
+        Self {
+            val: 0,
+        }
+    }
+}
+
+
+// Update
+
+#[derive(Clone)]
+enum Msg {
+    Increment,
+}
+
+fn update(msg: Msg, model: Model) -> Model {
+    match msg {
+        Msg::Increment => Model {val: model.val + 1}
+    }
+}
+
+
+// View
+
+fn view(model: Model) -> El<Msg> {
+    button![
+        simple_ev("click", Msg::Increment),
+        format!("Hello, World × {}", model.val)
+    ]
+}
+
 // Called by our JS entry point to run the example.
-#[wasm_bindgen]
+#[wasm_bindgen(start)]
 pub fn run() -> Result<(), JsValue> {
     set_panic_hook();
 
     let window = web_sys::window().expect("should have a Window");
     let document = window.document().expect("should have a Document");
-
-    let p: web_sys::Node = document.create_element("p")?.into();
-    p.set_text_content(Some("Hello from Rust, WebAssembly, and Webpack!"));
+    let div = document.create_element("div").unwrap();
+    div.set_id("main");
 
     let body = document.body().expect("should have a body");
     let body: &web_sys::Node = body.as_ref();
-    body.append_child(&p)?;
+    body.append_child(&div)?;
+    seed::run(Model::default(), update, view, "main");
 
     Ok(())
 }
